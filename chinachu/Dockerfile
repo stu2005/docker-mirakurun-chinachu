@@ -16,7 +16,7 @@ RUN set -x && \
     git clone --recursive https://github.com/chinachu/chinachu /src && \
 \
  # 必要なディレクトリを作成
-	 mkdir /src/data/ /src/log/ /src/run/ /src/recorded/ /build/ && \
+    mkdir /src/data/ /src/log/ /src/run/ /src/recorded/ /build/ && \
 \
  # ビルドに必要なファイルのみを移動する。
     mv /src/common /src/package*json /build/ && \
