@@ -11,8 +11,14 @@
 ## インストール手順
 
 ```sh
+#取得
 git clone https://github.com/chinachu/docker-mirakurun-chinachu
 cd docker-mirakurun-chinachu
+
+#各種設定
+nano ./compose.yaml
+
+#mirakurunをセットアップ
 sudo docker compose run --rm -e SETUP=true mirakurun
 
 #DVBドライバ非対応チューナー向け
@@ -22,9 +28,6 @@ sudo nano ./mirakurun/config/tuners.yml
 
 #チャンネル設定
 sudo nano ./mirakurun/config/channels.yml
-
-#その他諸々の設定
-nano ./compose.yaml
 ```
 
 ## 起動
