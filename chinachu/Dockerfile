@@ -1,67 +1,68 @@
-FROM node:10-alpine
+ # 使用するベースイメージを14-alpineに更新する。マルチステージビルドを利用して最終イメージをよりクリーンにする。
+FROM docker.io/library/node:14-alpine AS build
+
+RUN set -x && \
+\
+ # パッケージの更新
+    apk upgrade -U --no-cache && \
+\
+ # ビルドに必要なパッケージの導入
+    apk add -U --no-cache alpine-sdk python3 git bash && \
+\
+ # Gitの設定を変更しChinachuをクローンできるようにする。
+    git config --global http.version HTTP/1.1 && \
+\
+ # Chinachuをサブモジュールごとクローン
+    git clone --recursive https://github.com/chinachu/chinachu /src && \
+\
+ # 必要なディレクトリを作成
+	 mkdir /src/data/ /src/log/ /src/run/ /src/recorded/ /build/ && \
+\
+ # ビルドに必要なファイルのみを移動する。
+    mv /src/common /src/package*json /build/ && \
+    cd /build/ && \
+\
+ # Chinachuをビルド
+    npm install && \
+    npm update && \
+    npm audit fix
+
+ # processes.jsonをDockerや実行ユーザnodeでも使用可能なものに置き換える。
+COPY ./processes.json /src/
+
+
+####最終イメージ
+
+ # node:14-alpineは既にメンテナンスされていない為、最新のパッケージを使用できるようにalpine:latestを取得する。
+FROM docker.io/library/alpine:latest AS update_baseImage
+
+ # ベースイメージ
+FROM docker.io/library/node:14-alpine
 LABEL maintainer "h-mineta <h-mineta@0nyx.net>"
 
-ENV DOCKER="YES"
-ARG REPOSITORY="https://github.com/Chinachu/Chinachu.git"
-ARG BRANCH="master"
+ # パッケージリポジトリの設定を更新
+COPY --from=update_baseImage /etc/apk/repositories /etc/apk/repositories
 
-ARG WORK_DIR="/usr/local/chinachu"
+ # Chinachuのビルドとソースを、所有者をnodeとしてコピーする。
+COPY --chown=node:node --from=build /src/ /app/
+COPY --chown=node:node --from=build /build/ /app/
 
-#node container default value
-ARG USER_NAME="node"
+ # ワーキングディレクトリの設定
+WORKDIR /app/
 
-RUN set -x \
-	&& apk upgrade --update \
-	&& apk add \
-		bash \
-		coreutils \
-		curl \
-		procps \
-		ca-certificates \
-	\
-	&& apk add --virtual .build-deps \
-		git \
-		make \
-		gcc \
-		g++ \
-		autoconf \
-		automake \
-		wget \
-		curl \
-		sudo \
-		tar \
-		xz \
-		libc-dev \
-		musl-dev \
-		eudev-dev \
-		libevent-dev \
-		perl-utils \
-	\
-	&& mkdir -p ${WORK_DIR} \
-	&& git clone ${REPOSITORY} ${WORK_DIR} \
-	&& chown -R ${USER_NAME} ${WORK_DIR} \
-	&& cd ${WORK_DIR} \
-	&& git checkout ${BRANCH} \
-	&& echo 2 | sudo -u ${USER_NAME} ./chinachu installer \
-	&& echo 4 | sudo -u ${USER_NAME} ./chinachu installer \
-	&& echo 5 | sudo -u ${USER_NAME} ./chinachu installer \
-	&& sudo -u ${USER_NAME} ./chinachu service operator initscript | tee /tmp/chinachu-operator \
-	&& sudo -u ${USER_NAME} ./chinachu service wui initscript | tee /tmp/chinachu-wui \
-	&& sudo -u ${USER_NAME} mkdir log \
-	\
-	&& chmod u+x /tmp/chinachu-operator /tmp/chinachu-wui \
-	&& mv /tmp/chinachu-operator /etc/init.d/ \
-	&& mv /tmp/chinachu-wui /etc/init.d/ \
-	\
-	# cleaning
-	&& cd / \
-	&& npm cache verify \
-	&& apk del --purge .build-deps \
-	&& rm -rf /var/cache/apk/*
+ # ポートの開放
+EXPOSE 20772
 
-COPY services.sh /usr/local/bin
-COPY config.sample.json ${WORK_DIR}
+ # パッケージの更新
+RUN apk upgrade -U --no-cache && \
 
-WORKDIR ${WORK_DIR}
-CMD ["/usr/local/bin/services.sh"]
-EXPOSE 10772 20772 5353
+ # 動作に必要なパッケージを導入
+    apk add -U --no-cache curl ffmpeg bash coreutils procps-ng ca-certificates && \
+    npm install pm2 -g
+
+ # コンテナ内の実行ユーザをnodeとする。
+USER node:node
+
+ # コンテナをchinachuが起動する実行ファイルとする。
+ENTRYPOINT ["pm2-runtime"]
+CMD ["./processes.json"]
