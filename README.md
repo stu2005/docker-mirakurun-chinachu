@@ -84,7 +84,7 @@ sudo docker compose down -v --rmi all --remove-orphans
   `./recorded/`
 
 * Mirakurun 設定ファイル
-* 
+  
   `./mirakurun/config/`
 
 * Mirakurun OPT
