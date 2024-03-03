@@ -1,0 +1,104 @@
+########## mirakurunの設定 ##########
+
+x-mirakurun-tuners: &mirakurun-tuners
+ # mirakurunで使用するチューナーやカードリーダ等のデバイスを以下に列挙する。
+  - "/dev/bus:/dev/bus"
+  - "/dev/dvb:/dev/dvb"
+
+x-mirakurun-ports: &mirakurun-ports
+ # mirakurunを公開するポートを指定する。
+  target: 40772 # コンテナ内。
+  published: 40772 # ホスト側。この値を変更する。
+
+
+########## chinachuの設定 ##########
+
+x-chinachu-recorded: &chinachu-recorded
+ # chinachuの録画を保存するディレクトリを指定する。
+  source: ./recorded/ # ホスト側。この値を変更する。
+  target: /app/recorded/ # コンテナ内。
+
+x-chinachu-ports: &chinachu-ports
+ # chinachuを公開するポートを指定する。
+  target: 20772 # コンテナ内。
+  published: 20772 # ホスト側。この値を変更する。
+
+
+########## 開発者向け ##########
+services:
+
+  mirakurun:
+    image: docker.io/chinachu/mirakurun:latest
+    container_name: mirakurun
+    ports:
+      - <<: *mirakurun-ports
+    cap_add:
+      - SYS_ADMIN
+      - SYS_NICE
+    environment:
+      TZ: "Asia/Tokyo"
+      # LOG_LEVEL: "3"
+      # DEBUG: "true"
+    devices: *mirakurun-tuners
+    volumes:
+      - type: bind
+        source: ./mirakurun/opt/
+        target: /opt/
+      - type: bind
+        source: ./mirakurun/config/
+        target: /app-config/
+      - type: volume
+        source: mirakurun
+        target: /app-data/
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-file: "2"
+        max-size: "5m"
+        compress: "true"
+    healthcheck:
+      test: curl -fsSL http://localhost:40772/api/status || exit 1
+      interval: 10s
+      timeout: 3s
+
+  chinachu:
+    image: chinachu/chinachu:latest
+    build:
+      context: ./chinachu/
+    container_name: chinachu
+    ports:
+      - <<: *chinachu-ports
+    volumes:
+      - type: bind
+        source: /etc/localtime
+        target: /etc/localtime
+        read_only: true
+      - type: bind
+        source: ./chinachu/config/config.json
+        target: /app/config.json
+      - type: bind
+        source: ./chinachu/config/rules.json
+        target: /app/rules.json
+      - type: volume
+        source: chinachu
+        target: /app/data/
+      - type: bind
+        <<: *chinachu-recorded
+    depends_on:
+      mirakurun:
+        condition: service_healthy
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "2"
+        max-size: "5m"
+        compress: "true"
+
+
+volumes: 
+  mirakurun:
+    name: "mirakurun"
+  chinachu:
+    name: "chinachu"
