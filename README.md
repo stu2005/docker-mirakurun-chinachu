@@ -24,7 +24,7 @@ sudo docker compose run --rm -e SETUP=true mirakurun
 #DVBドライバ非対応チューナー向け
 cp ./mirakurun/opt/bin/startup.sample ./mirakurun/opt/bin/startup
 sudo nano ./mirakurun/opt/bin/startup
-chmod +x ./mirakurun/opt/bin/startup
+sudo chmod +x ./mirakurun/opt/bin/startup
 sudo nano ./mirakurun/config/tuners.yml
 
 #チャンネル設定
