@@ -3,10 +3,10 @@ FROM docker.io/library/node:14-alpine AS build
 
 RUN set -x && \
 \
- # パッケージの更新
+ # パッケージを更新
     apk upgrade -U --no-cache && \
 \
- # ビルドに必要なパッケージの導入
+ # ビルドに必要なパッケージを導入
     apk add -U --no-cache alpine-sdk python3 git bash && \
 \
  # Gitの設定を変更しChinachuをクローンできるようにする。
@@ -47,13 +47,13 @@ COPY --from=update_baseImage /etc/apk/repositories /etc/apk/repositories
 COPY --chown=node:node --from=build /src/ /app/
 COPY --chown=node:node --from=build /build/ /app/
 
- # ワーキングディレクトリの設定
+ # ワーキングディレクトリを設定
 WORKDIR /app/
 
- # ポートの開放
+ # ポートを開放
 EXPOSE 20772
 
- # パッケージの更新
+ # パッケージを更新
 RUN apk upgrade -U --no-cache && \
 
  # 動作に必要なパッケージを導入
