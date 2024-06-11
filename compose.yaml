@@ -1,27 +1,22 @@
 ########## mirakurunの設定 ##########
-
 x-mirakurun-tuners: &mirakurun-tuners
  # mirakurunで使用するチューナーやカードリーダ等のデバイスを以下に列挙する。
   - "/dev/bus:/dev/bus"
   - "/dev/dvb:/dev/dvb"
 
 x-mirakurun-ports: &mirakurun-ports
- # mirakurunを公開するポートを指定する。
-  target: 40772 # コンテナ内。
-  published: 40772 # ホスト側。この値を変更する。
+ # mirakurunを公開するホスト側のポートを指定する。
+  published: 40772
 
 
 ########## chinachuの設定 ##########
-
 x-chinachu-recorded: &chinachu-recorded
- # chinachuの録画を保存するディレクトリを指定する。
-  source: ./recorded/ # ホスト側。この値を変更する。
-  target: /app/recorded/ # コンテナ内。
+ # chinachuの録画を保存するホスト側のディレクトリを指定する。
+  source: ./recorded/
 
 x-chinachu-ports: &chinachu-ports
- # chinachuを公開するポートを指定する。
-  target: 20772 # コンテナ内。
-  published: 20772 # ホスト側。この値を変更する。
+ # chinachuを公開するホスト側のポートを指定する。
+  published: 20772
 
 
 ########## 開発者向け ##########
@@ -31,7 +26,8 @@ services:
     image: docker.io/chinachu/mirakurun:latest
     container_name: mirakurun
     ports:
-      - <<: *mirakurun-ports
+      - target: 40772
+        <<: *mirakurun-ports
     cap_add:
       - SYS_ADMIN
       - SYS_NICE
@@ -68,7 +64,8 @@ services:
       context: ./chinachu/
     container_name: chinachu
     ports:
-      - <<: *chinachu-ports
+      - target: 20772
+        <<: *chinachu-ports
     volumes:
       - type: bind
         source: /etc/localtime
@@ -85,6 +82,7 @@ services:
         target: /app/data/
       - type: bind
         <<: *chinachu-recorded
+        target: /app/recorded/
     depends_on:
       mirakurun:
         condition: service_healthy
